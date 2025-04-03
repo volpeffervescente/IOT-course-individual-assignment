@@ -7,7 +7,7 @@
 #define SAMPLE_INTERVAL   100         // Sampling every 100ms
 #define WINDOW_SIZE       50          // 5s window (50 samples if 100ms per sample -> 50 * 100ms = 5s)
 
-QueueHandle_t xQueue;                 // FreeRTOS Queue to store distance readings
+QueueHandle_t xQueue;                 // FreeRTOS Queue to store values
 
 void SensorTask(void *pvParameters) {
   float value;
@@ -42,12 +42,12 @@ void AverageTask(void *pvParameters) {
       float averageValue = sum / count; 
 
 
-      Serial.print("Window: ");
-      for(int i=0; i<5;i++)
-      {
-        Serial.print(slidingWindow[i], 3);
-        Serial.print(", ");  
-      }
+      //Serial.print("Window: ");
+      //for(int i=0; i<5;i++)
+      //{
+        //Serial.print(slidingWindow[i], 3);
+        //Serial.print(", ");  
+      //}
       
       Serial.print("Average value of sensor readings: ");
       Serial.println(averageValue, 6);
