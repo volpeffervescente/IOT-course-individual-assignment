@@ -1,56 +1,104 @@
 # IoT System with Adaptive Sampling using ESP32 and FreeRTOS
 
-## Introduction
-This project implements an IoT system that collects data from a sensor, processes it locally, and transmits an aggregated value to a nearby server and the cloud. The system adapts its sampling frequency dynamically to optimize energy consumption and reduce communication overhead. The firmware is developed using FreeRTOS on an ESP32 board.
+## Overview
+This repository contains the source code and documentation for an **IoT system** designed to collect, process, and transmit sensor data efficiently using **adaptive sampling**. The system is built on **ESP32 with FreeRTOS**, utilizing **FFT** for signal analysis and dynamically adjusting the sampling frequency to save energy and reduce communication overhead.
+
+---
 
 ## Features
-The system dynamically adjusts the sampling frequency based on the frequency components of the input signal. It computes the frequency spectrum of the signal using FFT to determine the optimal sampling frequency. The sampled data is aggregated locally by computing the average over a defined time window. The aggregated data is then transmitted to a nearby server via MQTT over WiFi and to the cloud using LoRaWAN + TTN. Performance evaluation includes measuring energy savings, data transmission volume, and system latency.
+- **Dynamic Sampling Frequency Adjustment**: Adjusts sampling rate based on signal frequency components.
+- **FFT-based Analysis**: Uses Fast Fourier Transform to detect dominant frequencies.
+- **Data Aggregation**: Computes average values over a moving time window.
+- **Dual Communication**:
+  - **WiFi (MQTT)**: Sends data to a local edge server.
+  - **LoRaWAN + TTN**: Transmits data to the cloud.
+- **Performance Metrics**: Includes energy savings, transmission volume, and latency measurement.
+
+---
 
 ## System Architecture
+
 ### Hardware Components
-The project uses an ESP32 prototype board, a Heltec WiFi LoRa V3 board with its antenna, linked thorough a breadboard and two jumpers, one for the connection to the gnd, and one to connect the two boards, respectively the connection is between GPIO25 of the ESP32 and the GPIO07 of the Heltec WiFi LoRa (you can also link the two boards directly with two FF jumpers). 
+- **ESP32 Development Board**
+- **Heltec WiFi LoRa V3 Board** (with antenna)
+- **Connections**:
+  - `GPIO25 (ESP32)` → `GPIO07 (Heltec)`
+  - `GND ↔ GND`
+  - Use breadboard and jumper wires (or FF jumpers for direct connection)
 
 ### Software Components
-The firmware is based on FreeRTOS, which efficiently manages tasks. MQTT is used for communication with the edge server over WiFi, while LoRaWAN + TTN enables data transmission to the cloud. FFT analysis helps compute the signal frequency spectrum, and an adaptive sampling algorithm dynamically adjusts the sampling rate.
-Thus, the libraries you need are: ArduinoFFT, FreeRTOS, ------
+- **RTOS**: [FreeRTOS](https://www.freertos.org/)
+- **Signal Processing**: [ArduinoFFT](https://github.com/kosme/arduinoFFT)
+- **Communication Protocols**:
+  - MQTT over WiFi
+  - LoRaWAN via [TTN (The Things Network)](https://www.thethingsnetwork.org/)
 
-#### How to Set Up and Run
-Prerequisites: an ESP32 board with FreeRTOS support, an MQTT broker, and a LoRaWAN gateway with a TTN account are required.
-Configure the MQTT broker and LoRaWAN settings, start the ESP32 firmware, and observe sensor data processing and transmission.
+### Prerequisites
+- ESP32 board with FreeRTOS support
+- Configured MQTT broker
+- LoRaWAN gateway with a registered TTN application/account
+
+---
+
+## Setup Instructions
+1. **Clone this repository**
+   ```bash
+   git clone https://github.com/yourusername/iot-adaptive-sampling.git
+   ```
+2. **Open the project in Arduino IDE or PlatformIO**
+3. **Install required libraries**
+   - ArduinoFFT
+   - FreeRTOS (if using Arduino IDE, select ESP32 board with FreeRTOS)
+4. **Configure MQTT and LoRaWAN settings** in the source files
+5. **Upload firmware** to the ESP32 board
+6. **Monitor the Serial output** for live logs and debug info
+
+---
 
 ## Implementation Details
 
-### Input
-The input signal is given (generated) by the DAC (digital to analog converter) enbedded in the ESP32 (GPIO25). 
-In particular, the input signal is a wave that has the form 2sin(2π3t) + 4sin(2π5t).
-
-### Maximum Sampling Frequency
-The ADC (Analog to digital converter) enbedded in the Heltec WiFI LoRa V3 (GPIO07) samples the wave signal it receives. 
-The maximum sampling frequency is 34.10 kHz. 
-
-### Optimal Sampling Frequency
-In the "optimal_samp_frequency" code FFT is computed on the sampled signal to determine its frequency spectrum. The sampling frequency is then adapted to 12Hz to match the highest frequency component, that is then displayed on the serial. The peak is obtained through the majorPeak() function.The major peak 6 Hz. As per the Nyquist sampling theorem, the final sampling frequency was set to 12 Hz.
+### Input Signal
+Generated by the ESP32 DAC on `GPIO25`:
+```math
+2 \cdot \sin(2\pi \cdot 3t) + 4 \cdot \sin(2\pi \cdot 5t)
+```
+### Sampling Frequency
+- **Max Sampling Rate**: 34.10 kHz (ADC on `GPIO07` of Heltec)
+- **Optimal Sampling**: FFT detects a major peak at 6 Hz → Sampling adjusted to **12 Hz** using sampling theorem
 
 ### Aggregate Function Computation
-In the "window_code" code there is a task that computes the average avg() of the sampled signal over a specified time window. This one is defined as a ciruclar buffer.
+- computing the average over a sliding window implemented with a **circular buffer**
+- Defined in `window_code`
 
-### Communication with Edge Server
-The computed average is transmitted to a nearby server using MQTT over WiFi. This is done by exploiting the window_code and integrating MQTT code. The MQTT broker is a simple ----------
+### MQTT Communication
+- Aggregated data (avg) sent to local edge server via MQTT
+- "window_code" exploited to compute this task
+- adafruit topic is volpeffervescente/feed/avg 
+- MQTT broker setup required (e.g., Mosquitto)
 
-### Communication with Cloud
-The computed average is transmitted to the cloud using LoRaWAN + TTN using the LoRaWAN connectivity repository provied by Heltec. 
+### LoRaWAN + TTN Communication
+- Aggregated data sent to cloud using LoRa
+- LoRaWAN configuration from **Heltec LoRaWAN connectivity repository**
 
------------------------------------------------------------------------------------------------------------
+---
 
 ## Performance Evaluation
+
 ### Energy Savings
-Energy consumption is compared between adaptive sampling and fixed over-sampling.---------
+Compares adaptive sampling vs. fixed over-sampling  
+**Results**: _(to be filled)_
 
 ### Data Transmission Volume
-The amount of data transmitted using adaptive sampling is measured against over-sampling.---------
+Evaluates reduction in data size using adaptive sampling  
+**Results**: _(to be filled)_
 
 ### End-to-End Latency
-Latency is measured from the point of data generation to reception at the edge server.---------
+Measures latency from data generation to reception at edge server  
+**Results**: _(to be filled)_
+
+---
 
 ## Bonus: Multiple Input Signals
+_
+
 ---
