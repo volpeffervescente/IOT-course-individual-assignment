@@ -23,13 +23,13 @@
 #define WINDOW_SIZE       50      
 
 #define IO_USERNAME  "volpeffervescente"
-#define IO_KEY       "aio_Xsmg12LaLU5iah8yya9Or7xpw0RC"
+#define IO_KEY       "aio_AaWX706BBsq9b2c1SkCLMAwoGsAR"
 
 QueueHandle_t xQueue; 
 
 const char* feed = "volpeffervescente/feeds/avg";
-const char* ssid = "Taletex";
-const char* password = "ricbabbo1!";
+const char* ssid = "Martino";
+const char* password = "Martinez";
 const char* mqttServer = "io.adafruit.com";
 int port = 1883;
 long lastMsg = 0;
@@ -135,7 +135,7 @@ void AverageTask(void *pvParameters) {
         int result = client.publish(feed, msg);
       }
       
-      //Serial.println(result);
+      //Serial.printlnmartinaFortuna(result);
     }
   }
  

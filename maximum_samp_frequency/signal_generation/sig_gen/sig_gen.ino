@@ -1,36 +1,34 @@
 #include <Arduino.h>
 
-// Define the DAC output pin
-const int dacPin = 25;  // DAC1 (GPIO 25)
+#define NUM_SIGNALS 5
+#define SAMPLING_FREQ 8000
+#define NUM_SAMPLES 2048
+#define OFFSET 128
 
-const int amplitude1 = 2;
-const int amplitude2 = 4;
-const int offset = 128;
-const float signalFrequency1 = 3.0; 
-const float signalFrequency2 = 5.0; 
+const int dacPin = 25; // DAC output pin
+float frequencies[NUM_SIGNALS] = { 50.0, 2000.0, 800.0, 600.0, 1000.0 };
+float amplitudes[NUM_SIGNALS] = { 8.0, 2.0, 4.0, 1.5, 3.0 };
 
-const int samplingFrequencyDAC = 100;
-const int samples = 128;
-
-void setup() {
-  
-   Serial.begin(115200);
-  while(!Serial);
-  Serial.println("Ready");
-   // Initialize DAC pin (GPIO 25)
-  dacWrite(dacPin, 0);
-} 
-
+void setup() 
+{
+    Serial.begin(115200);
+    while(!Serial);
+    Serial.println("Ready");
+}
 
 void loop() {
-  for (int i = 0; i < samples; i++) {
-    float t = (float)i / samplingFrequencyDAC; 
+    for (int i = 0; i < NUM_SAMPLES; i++) 
+    {
+        float t = (float)i / SAMPLING_FREQ;
 
-    int sineValue = (amplitude1 * sin(2.0 * PI * signalFrequency1 * t)) + (amplitude2 * sin(2.0 * PI * signalFrequency2 * t)) + offset;
+        int value = 0;
+        for(int j = 0; j < NUM_SIGNALS; j++)
+        {
+            value += OFFSET + amplitudes[j] * sin (2.0 * PI * frequencies[j] * t);
+        }
 
-    dacWrite(dacPin, sineValue);
-    Serial.print("dac:");  
-    Serial.println(sineValue);
-    delayMicroseconds(1000000/ samplingFrequencyDAC);
+        dacWrite(dacPin, value);
+        Serial.println(value);
+        delayMicroseconds(1000000 / SAMPLING_FREQ);
   }
 }
