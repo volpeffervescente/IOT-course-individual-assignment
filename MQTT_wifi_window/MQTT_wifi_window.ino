@@ -23,13 +23,13 @@
 #define WINDOW_SIZE       50      
 
 #define IO_USERNAME  "volpeffervescente"
-#define IO_KEY       "aio_AaWX706BBsq9b2c1SkCLMAwoGsAR"
+#define IO_KEY       ""
 
 QueueHandle_t xQueue; 
 
 const char* feed = "volpeffervescente/feeds/avg";
 const char* ssid = "Martino";
-const char* password = "Martinez";
+const char* password = "";
 const char* mqttServer = "io.adafruit.com";
 int port = 1883;
 long lastMsg = 0;
