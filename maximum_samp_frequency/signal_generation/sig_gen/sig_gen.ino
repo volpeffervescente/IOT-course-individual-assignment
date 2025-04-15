@@ -6,8 +6,8 @@
 #define OFFSET 128
 
 const int dacPin = 25; // DAC output pin
-float frequencies[NUM_SIGNALS] = { 50.0, 2000.0, 800.0, 600.0, 1000.0 };
-float amplitudes[NUM_SIGNALS] = { 8.0, 2.0, 4.0, 1.5, 3.0 };
+float frequencies[NUM_SIGNALS] = { 50.0, 2000.0, 800.0, 600.0 };
+float amplitudes[NUM_SIGNALS] = { 8.0, 2.0, 4.0, 1.5 };
 
 void setup() 
 {

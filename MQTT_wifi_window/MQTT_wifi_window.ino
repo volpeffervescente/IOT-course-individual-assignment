@@ -23,13 +23,13 @@
 #define WINDOW_SIZE       50      
 
 #define IO_USERNAME  "volpeffervescente"
-#define IO_KEY       ""
+//#define IO_KEY       "."
 
 QueueHandle_t xQueue; 
 
 const char* feed = "volpeffervescente/feeds/avg";
-const char* ssid = "Martino";
-const char* password = "";
+const char* ssid = "FASTWEB-25S396_2.4GHz";
+const char* password = ".";
 const char* mqttServer = "io.adafruit.com";
 int port = 1883;
 long lastMsg = 0;
