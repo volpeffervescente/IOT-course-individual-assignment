@@ -23,6 +23,7 @@ This repository contains the source code and documentation for an **IoT system**
   - `GPIO25 (ESP32)` → `GPIO07 (Heltec)`
   - `GND ↔ GND`
   - Use breadboard and jumper wires (or FF jumpers for direct connection)
+  - Two USB cables
 
 ### Software Components
 - **IDE for embedded systems**: Arduino IDE or PlatformIO
