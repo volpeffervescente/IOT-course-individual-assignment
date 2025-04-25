@@ -7,14 +7,15 @@
  * - one for calculating the FFT and adapting the frequency
  * - one for displaying the available resources
  * 
- * The program uses a semaphore and tasks notifications to synchronize 
- * the sampling task and the FFT analyzer task. The task notification 
- * ensures that the FFT will not be calculated before collecting a 
- * complete set of samples. The semaphore ensures that the sampling task 
- * is not modifying the samples array while being referenced by the 
- * FFT.compute() function, or that the adaptation task won't change 
- * the sampling frequency in the mid of a samples set collectioning.
- *
+ * The program uses:  
+ * 
+ * - Double Buffering for Parallel Sampling and FFT Processing
+ *   This version introduces two separate buffers for sampling and processing,
+ *   allowing SamplingTask and ProcessingTask to work in parallel without data conflict.
+ * - Tasks notifications to synchronize the sampling task and the FFT analyzer task. 
+ *   The task notification ensures that the FFT will not be calculated before collecting a 
+ *   complete set of samples. 
+ *   
  * An attempt at detecting signal changes to determine when to recompute
  * the FFT and change the sampling frequency has been done by following
  * this logic: if the sampled signals changes enough, at the current 
@@ -30,7 +31,7 @@
  * avoided. Other approaches could be based on interrupts, network
  * commands, other statistical methods, or even timers.
  * 
- * Code adjusted by Martina and Leonardo :) 
+ * 
  */
 #include <Arduino.h>                    
 #include "arduinoFFT.h"                 // Slow library, other libraries like CMSIS-DSP or ESP-DSP could be faster due to specific ARM optimizations (basically optimized for devices like the ESP32)
@@ -51,15 +52,16 @@ const uint16_t samples = 64;            // Must be a power of 2 - frequency and 
 double samplingFrequency = 16000.0f;  
 
 // FFT Object
-float fft_input[samples * 2];           // ESP_DSP
-double vReal[samples];                  // arduinoFFT - ESP_DSP
-double vImag[samples];                  // arduinoFFT
-ArduinoFFT<double> FFT(vReal, vImag, samples, samplingFrequency);
 
-// Task Handles - reference to the task functions, helpful for example to notify the FFT task from the sampling task
-TaskHandle_t SamplingTaskHandle = NULL;
-TaskHandle_t ProcessingTaskHandle = NULL;
-TaskHandle_t MonitorTaskHandle = NULL;
+float fft_input[samples * 2];
+double bufferA_vReal[samples];
+double bufferA_vImag[samples];
+double bufferB_vReal[samples];
+double bufferB_vImag[samples];
+double* vReal = bufferA_vReal;
+double* vImag = bufferA_vImag;
+
+bool useBufferA = true;
 
 // FFT flags
 bool bRecomputeFFT = true;              // Flag telling the sampling task if it should also trigger an FFT recalculation, keep true to trigger the initial adaptation
@@ -68,6 +70,15 @@ bool bStatisticalTrigger = false;       // Should mean and standard deviation be
 // Statical variables to trigger the FFT recompute 
 float stdDeviation = 0.0f;
 float mean = 0.0f; 
+
+ArduinoFFT<double> FFT(bufferA_vReal, bufferA_vImag, samples, samplingFrequency);
+
+
+// Task Handles - reference to the task functions, helpful for example to notify the FFT task from the sampling task
+TaskHandle_t SamplingTaskHandle = NULL;
+TaskHandle_t ProcessingTaskHandle = NULL;
+TaskHandle_t MonitorTaskHandle = NULL;
+
 
 // Semaphore for critical section handling - it's recommended to initialize it as a binary semaphore
 SemaphoreHandle_t xSemaphore;
@@ -79,6 +90,11 @@ static SSD1306Wire  display(0x3c, 500000, SDA_OLED, SCL_OLED, GEOMETRY_128_64, R
  * Calculate the power of two - gets a value and outputs value^2, used for calculating the standard deviation - not importing a math library saves space!
  */
 inline float pow(float value) { return value * value; }
+
+// Update FFT instance pointers before processing
+void UpdateFFTBuffers() {
+    FFT = ArduinoFFT<double>(vReal, vImag, samples, samplingFrequency);
+}
 
 /*
  * Calculate the peak frequency using the arduinoFFT library
@@ -187,69 +203,54 @@ void setup()
 }
 
 /*
- * A simple sampling task that runs continuously, interrupted only during the FFT computation and the sampling rate adaptation
- * The main issue is avoiding the read and write on the same array of values (the input signal), accessing and modifying vReal and vImag should be done in a critical section
- * Other functionalities of this function are calculating the time needed to sample, and understanding if the FFT must be recomputed with a consequent sampling adaptation
+ *  A simple sampling task that runs continuously,not even interrupted during 
+ *  the FFT computation and the sampling rate adaptation
+ *  Other functionalities of this function are calculating the time needed to sample, 
+ *  and understanding if the FFT must be recomputed with a consequent sampling adaptation
  */
 void SamplingTask(void *parameter) 
 {
     while (1) 
     {
+        double* local_vReal = useBufferA ? bufferA_vReal : bufferB_vReal;
+        double* local_vImag = useBufferA ? bufferA_vImag : bufferB_vImag;
+        
         // Comment this part to avoid extra delays when performance evaluation is not needed!
         // uint32_t startTime = micros();
 
-        if( xSemaphore == NULL )
+        int sum = 0; // Used to compute the average later - if observing weird mean values,
+                     // might be due to overflow, change value type to long
+        for (int i = 0; i < samples; i++) {
+            local_vReal[i] = analogRead(adcPin);
+            local_vImag[i] = 0.0; // No imaginary component
+            sum += local_vReal[i];  // Again, just for signal mean computing
+            delayMicroseconds(1000000 / samplingFrequency);
+        }    
+        // Naive statistical approach to detect signal changes - bad idea, explanation above.
+        if(bStatisticalTrigger)
         {
-            Serial.println("[Semaphore] Semaphore error in Sampling Task");
-        }
-        else
-        {
-            if( xSemaphoreTake(xSemaphore, pdMS_TO_TICKS(100) ) == pdTRUE ) // Take semaphore - enter critical section
+            float newMean = sum / samples;  // average of signal in order to calculate standard deviation
+            float newStdDeviation = 0;      // Calculate the standard deviation
+            for(int i = 0; i < samples; i++)
             {
-                int sum = 0;                        // Used to compute the average later - if observing weird mean values, might be due to overflow, change value type to long
-                for (int i = 0; i < samples; i++)
-                {
-                    vReal[i] = analogRead(adcPin);  
-                    vImag[i] = 0.0;                 // No imaginary component
-
-                    sum += vReal[i];                // Again, just for signal mean computing
-                     
-                    // Delay based on adaptive frequency
-                    delayMicroseconds(1000000 / samplingFrequency);
-                }
-
-                xSemaphoreGive(xSemaphore); // Free semaphore - vReal will not change in any way before computing the mean and standard deviation
-
-                // Naive statistical approach to detect signal changes - bad idea, explanation above.
-                if(bStatisticalTrigger)
-                {
-                    float newMean = sum / samples;  // average of signal in order to calculate standard deviation
-                    float newStdDeviation = 0;      // Calculate the standard deviation
-                    for(int i = 0; i < samples; i++)
-                    {
-                        newStdDeviation += pow(vReal[i] - newMean);
-                    }
-                    newStdDeviation = sqrt(newStdDeviation / samples);
-
-                    if(newMean >= mean + stdDeviation * ERROR_MARGIN || newMean <= mean - stdDeviation * ERROR_MARGIN )
-                    {
-                        bRecomputeFFT = true;
-                    }
-
-                    mean = newMean;
-                    stdDeviation = newStdDeviation;
-                    Serial.print("[Adapting] Signal mean: ");
-                    Serial.println(mean);
-                    Serial.print("[Adapting] Signal standard deviation: ");
-                    Serial.println(stdDeviation);
-                }
+                newStdDeviation += pow(local_vReal[i] - newMean);
             }
-            else
+            newStdDeviation = sqrt(newStdDeviation / samples);
+
+            if(newMean >= mean + stdDeviation * ERROR_MARGIN
+                                 ||
+            newMean <= mean - stdDeviation * ERROR_MARGIN )
             {
-                Serial.println("[Semaphore] Could not take semaphore in Sampling Task");
+                bRecomputeFFT = true;
             }
-        }
 
+            mean = newMean;
+            stdDeviation = newStdDeviation;
+            Serial.print("[Adapting] Signal mean: ");
+            Serial.println(mean);
+            Serial.print("[Adapting] Signal standard deviation: ");
+            Serial.println(stdDeviation);
+        }
         // Comment also this part to avoid performance evaluation delays
         // uint32_t elapsedTime = micros() - startTime;
         // Serial.print("[Sampling] Execution Time: ");
@@ -257,16 +258,19 @@ void SamplingTask(void *parameter)
         // Serial.println(" ms");
 
         // Notify FFT task that data is ready
-        if(bRecomputeFFT)
-        {
-          bRecomputeFFT = false;
-          Serial.println("[FFT recomputation] FFT recompute triggered due to possible signal changes...");
-          xTaskNotifyGive(ProcessingTaskHandle);
+        if (bRecomputeFFT) {
+            bRecomputeFFT = false;
+            vReal = local_vReal;
+            vImag = local_vImag;
+            UpdateFFTBuffers();
+            Serial.println("[FFT recomputation] FFT recompute triggered due to possible signal changes...");
+            useBufferA = !useBufferA;
+            xTaskNotifyGive(ProcessingTaskHandle);
         }
 
         // Prevent watchdog reset, but again, we want to avoid useless delays, other solutions?
         vTaskDelay(pdMS_TO_TICKS(1));  // Unfortunately, resetting the wathcdog forcefully will cause issues
-    }
+    }        
 }
 
 /*
@@ -282,44 +286,25 @@ void ProcessingTask(void *parameter)
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         
         uint32_t startTime = micros();
-
-        if( xSemaphore == NULL )
+                    
+        // Get max frequency
+        double peakFrequency = ComputePeakFrequency_Arduino();
+        Serial.print("[Processing] Peak Frequency: ");
+        Serial.println(peakFrequency, 2);
+        if (peakFrequency > 0) 
         {
-          Serial.println("[Semaphore] Semaphore error in Processing Task");
-             
-        }
-        else
-        {
-            if( xSemaphoreTake( xSemaphore, pdMS_TO_TICKS(100) ) == pdTRUE ) // Take semaphore - critical section
-            {        
-                // Get max frequency
-                double peakFrequency = ComputePeakFrequency_Arduino();
-                Serial.print("[Processing] Peak Frequency: ");
-                Serial.println(peakFrequency, 2);
-                if (peakFrequency > 0) 
-                {
-                    // Nyquist theorem
-                    double newSamplingFreq = 2 * peakFrequency;
-        
-                    // Constrain within limits (10 hz, max frequency found in other assignment)
-                    samplingFrequency = constrain(newSamplingFreq, 10.0, 33000.0);
-                }
+            // Nyquist theorem
+            double newSamplingFreq = 2 * peakFrequency;
 
-                xSemaphoreGive(xSemaphore); // Free semaphore
-            }
-            else
-            {
-                Serial.println("[Semaphore] Could not take semaphore in Proessing Task");
-            }
+            // Constrain within limits (10 hz, max frequency found in other assignment)
+            samplingFrequency = constrain(newSamplingFreq, 10.0, 33000.0);
         }
-
         uint32_t elapsedTime = micros() - startTime;
         Serial.print("[Processing] Execution Time: ");
         Serial.print(elapsedTime / 1000.0);
         Serial.println(" ms");
-
         vTaskDelay(1);  // Prevent watchdog reset - happening once per second without
-    }
+    }       
 }
 
 /*
@@ -329,27 +314,21 @@ void ProcessingTask(void *parameter)
  */
 void MonitorTask(void *parameter) 
 {
-    while (1) 
-    {
+     while (1) {
         UBaseType_t uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
         uint32_t freeHeap = esp_get_free_heap_size();
 
-        // Serial console print
         Serial.println("------ Performance Metrics ------");
         Serial.print("Free Heap Memory: ");
         Serial.print(freeHeap);
         Serial.println(" bytes");
-
         Serial.print("Sampling Frequency: ");
         Serial.print(samplingFrequency);
         Serial.println(" Hz");
-
         Serial.print("Task Stack High Water Mark: ");
         Serial.println(uxHighWaterMark);
 
-        // Display print
-        if (OLED_ENABLE)
-        {
+        if (OLED_ENABLE) {
             display.clear();
             display.setTextAlignment(TEXT_ALIGN_LEFT);
             display.drawString(0, 0, "===Performance Metrics===");
@@ -359,11 +338,25 @@ void MonitorTask(void *parameter)
             display.drawString(64, 24, String(samplingFrequency));
             display.drawString(0, 36, "Stack Mark:");
             display.drawString(64, 36, String(uxHighWaterMark));
-            display.drawString(0, 48, "=========================");
+
+            String freqBar = "";
+            if (samplingFrequency < 1000) {
+                freqBar = "⬛⬜⬜⬜⬜";
+            } else if (samplingFrequency < 4000) {
+                freqBar = "⬛⬛⬜⬜⬜";
+            } else if (samplingFrequency < 8000) {
+                freqBar = "⬛⬛⬛⬜⬜";
+            } else if (samplingFrequency < 16000) {
+                freqBar = "⬛⬛⬛⬛⬜";
+            } else {
+                freqBar = ">=16000";
+            }
+            display.drawString(0, 48, "FreqLvl: " + freqBar);
+            display.drawString(0, 56, "=========================");
             display.display();
         }
 
-        vTaskDelay(2000 / portTICK_PERIOD_MS);  // Monitor every 2s
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
     }
 }
 

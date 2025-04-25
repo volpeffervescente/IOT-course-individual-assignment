@@ -71,14 +71,20 @@ MonitorTask: (Optional) Displays runtime metrics (sampling rate, heap usage, sta
 arduinoFFT: compatible FFT library.
 ESP-DSP: Optimized FFT library leveraging the ESP32's hardware acceleration (included, not used by default).
 
-***Synchronization***: Uses semaphores and task notifications to manage access to shared resources (vReal buffer) and coordinate between sampling and processing.
+***Synchronization and Parallelism***: 
+Instead of traditional semaphores, this project implements **double-buffering** to safely share data between tasks. Two alternating buffers (`bufferA` and `bufferB`) are used to decouple data acquisition from FFT processing:
+- While `SamplingTask` fills one buffer with fresh data,
+- `ProcessingTask` concurrently processes the other buffer.
+- The roles are swapped after each cycle using a boolean flag, ensuring safe and efficient parallel execution.
+
 Signal Change Detection (Experimental)
-An optional statistical method based on mean and standard deviation is included to detect abrupt changes in the signal and trigger an FFT recomputation. 
-However, this approach has several drawbacks:
-It may miss gradual signal changes.
-It introduces computation overhead and delay.
-It may cause desynchronization between consecutive sample batches.
-For these reasons, it is disabled by default, and other strategies like interrupts, thresholds, or external triggers are recommended.
+A statistical trigger based on mean and standard deviation is optionally available to detect abrupt changes in the input signal and initiate FFT recomputation. However, it comes with limitations:
+- It may not detect gradual variations.
+- Adds computation overhead and latency.
+- Can cause misalignment between batches.
+
+This mechanism is disabled by default in favor of simpler and more robust alternatives, such as interrupts or threshold-based detection.
+
 
 
 ### Aggregate Function Computation
