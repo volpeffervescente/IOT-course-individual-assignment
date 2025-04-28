@@ -1,6 +1,6 @@
 # IoT System with Adaptive Sampling using ESP32 and FreeRTOS
 
-## 📚 Table of Contents
+## Table of Contents
 - [Overview](#overview)
   - [Features](#features)
 - [System Architecture](#system-architecture)
