@@ -1,7 +1,7 @@
 /*
  * Adaptive Sampling + MQTT Integration
  * Combines FFT-based adaptive sampling (of sketch "optimalSamplingWithFFT.ino") 
- * with sliding window averaging (from sketch windowCode.ino)and MQTT publishing.
+ * with sliding window averaging (from sketch window_code.ino)and MQTT publishing.
  */
 
 #include <WiFiClient.h>
@@ -34,7 +34,7 @@
 #define PUBLISH_INTERVAL_MS 5000
 
 #define IO_USERNAME  "volpeffervescente"
-#define IO_KEY       "aio_qutm04j11gD0qXPnOJksLdovIDPr"
+#define IO_KEY       "..."
 
 QueueHandle_t xQueue; 
 
