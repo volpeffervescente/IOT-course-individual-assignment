@@ -180,8 +180,9 @@ To accurately assess the end-to-end latency of the system over Wi-Fi, a timestam
    ```
 
   Example command for the external client:  
-    ```
+    ```bash
     mosquitto_sub -h io.adafruit.com -p 1883 -u "volpeffervescente" -P "AIO_KEY" -t "volpeffervescente/feeds/echoAck"
+    done
     ```
 
 **Results**: 
@@ -193,7 +194,7 @@ Note: one-way latency is estimated by dividing the RTT by two.
 ---
 
 ## Bonus: Multiple Input Signals
-For the bonus assignment, the generation of at least 3 different input signals (some with low frequency and low amplitude, others with high frequency and high amplitude, ecc...) is performed by the DAC of the ESP32 board. This assignment is merged with the signal generation assignment, in the 'sig_gen' source code.   
+For the bonus assignment, the generation of at least 3 different input signals (some with low frequency and low amplitude, others with high frequency and high amplitude, ecc...) is performed by the DAC of the ESP32 board. This assignment is merged with the signal generation assignment, in the 'sigGen' source code.   
 
 
 How different types of an input signal may affect the overall performance in the case of adaptive sampling vs basic/over-sampling: 
