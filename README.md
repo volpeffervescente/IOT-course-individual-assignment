@@ -142,7 +142,7 @@ Compares adaptive sampling vs. fixed over-sampling
 Adaptive Sampling is expected to significantly reduce energy usage. Since data is sampled and transmitted only when necessary, the microcontroller and communication modules can stay in low-power modes longer. This is especially beneficial in low-activity scenarios.
 Fixed Oversampling results in higher and constant energy consumption, as the system continuously samples and transmits data, regardless of its relevance.
 
-![boards setup for power consumption measurement](setupPowerConsumptionMeasurement.jpg)
+![boards setup for power consumption measurement](imgs/setupPowerConsumptionMeasurement.png)
 
 ### Data Transmission Volume
 Evaluates reduction in data size using adaptive sampling  
