@@ -34,7 +34,7 @@
 #define PUBLISH_INTERVAL_MS 5000
 
 #define IO_USERNAME  "volpeffervescente"
-#define IO_KEY       "..."
+#define IO_KEY       "aio_aygx857KxXUE3j4QxW3FObQ3mAtg"
 
 QueueHandle_t xQueue; 
 
@@ -135,17 +135,23 @@ void callback(char* topic, byte* message, unsigned int length) {
   if (strcmp(topic, acknowledgment) == 0) {
     Serial.println("-- Topic matches acknowledgment --");
     unsigned long rtt = millis() - sentTimestamp; 
-    Serial.print("--Measuring Latency (RTT): ");
+    Serial.print("-- Measuring Latency (RTT): ");
     Serial.print(rtt);
-    Serial.println("ms");
+    Serial.println("ms --");
+    unsigned long oneWayLatency = rtt / 2; 
+    Serial.print("-- Measuring one-way Latency (RTT / 2 ): ");
+    Serial.print(oneWayLatency);
+    Serial.println("ms --");
+    Serial.println();
   }
 }
 
 void SensorTask(void *pvParameters) {
   while (1) {
-    int rawValue = analogRead(INPUT_PIN);
-    Serial.print("Raw ADC Value: ");
-    Serial.println(rawValue);
+    //debug
+    //int rawValue = analogRead(INPUT_PIN);
+    //Serial.print("Raw ADC Value: ");
+    //Serial.println(rawValue);
     double* local_vReal = useBufferA ? bufferA_vReal : bufferB_vReal;
     double* local_vImag = useBufferA ? bufferA_vImag : bufferB_vImag;
 
@@ -155,7 +161,8 @@ void SensorTask(void *pvParameters) {
       local_vImag[i] = 0.0;
       sum += local_vReal[i];
       xQueueSend(xQueue, &local_vReal[i], portMAX_DELAY);
-      vTaskDelay(pdMS_TO_TICKS(1000.0 / samplingFrequency));
+      double delayTime = max(1.0, 1000.0 / samplingFrequency);
+      vTaskDelay(pdMS_TO_TICKS(delayTime));
     }
     float newMean = sum / SAMPLES;
     float newStdDev = 0;
