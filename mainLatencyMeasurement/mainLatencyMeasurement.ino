@@ -21,8 +21,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
-#include <WiFi.h>
-//#include "secrets.h"
 
 #define INPUT_PIN         7   
 #define SAMPLES          64     

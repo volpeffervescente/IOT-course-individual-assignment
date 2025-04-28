@@ -138,11 +138,105 @@ This mechanism is disabled by default in favor of simpler and more robust altern
 ### Energy Savings
 Compares adaptive sampling vs. fixed over-sampling  
 
+# Adaptive Sampling + MQTT + Deep Sleep Overview
+
+This project combines **adaptive sampling** (using FFT), **sliding window averaging**, **MQTT communication**, and **deep sleep mode** to optimize energy efficiency.
+
+## Workflow
+
+1. **WiFi and MQTT Connection**  
+   The ESP32 wakes up and reconnects to WiFi and the Adafruit IO MQTT broker.
+
+2. **Signal Sampling**  
+   It samples 64 points from the analog input pin at a dynamic sampling frequency, initially set at 16 kHz.
+
+3. **FFT Calculation (if necessary)**  
+   If a significant signal variation is detected based on mean and standard deviation, the FFT is recalculated, and the sampling frequency is adapted according to the Nyquist theorem.
+
+4. **Sliding Window Averaging**  
+   A sliding window of 50 samples is used to compute the average value, reducing noise and data fluctuations.
+
+5. **MQTT Publishing**  
+   The averaged value and timestamp are published to the MQTT broker, allowing monitoring and RTT (Round Trip Time) latency measurement.
+
+6. **Deep Sleep Activation**  
+   After completing data acquisition and transmission, the ESP32 enters deep sleep mode for 5 seconds to minimize power consumption. Upon waking, it restarts the workflow from `setup()`.
+
+## Flowchart
+
+```plaintext
++----------------+
+| Wake Up        |
++----------------+
+        |
+        v
++----------------+
+| Connect WiFi   |
+| and MQTT       |
++----------------+
+        |
+        v
++---------------------------+
+| Sample Signal             |
+| (adaptive frequency)      |
++---------------------------+
+        |
+        v
++----------------------------+
+| FFT Analysis (if needed)   |
++----------------------------+
+        |
+        v
++----------------------------+
+| Calculate Sliding Avg      |
++----------------------------+
+        |
+        v
++----------------------------+
+| Publish to MQTT            |
++----------------------------+
+        |
+        v
++----------------------------+
+| Deep Sleep (5 seconds)     |
++----------------------------+
+        |
+        v
+(restart setup)
+```
+
+## Highlights
+
+- Full **energy saving** strategy thanks to periodic deep sleep cycles.
+- **Adaptive sampling** based on signal analysis reduces unnecessary data collection.
+- **MQTT-based monitoring** with integrated latency measurement using acknowledgment messages.
+- Designed for **IoT low-power scenarios** with optimized signal fidelity and reduced communication overhead.
+
+
+### Setup and Hardware Configuration
+
+The system is composed of multiple boards connected as follows:
+
+- **Signal Generator & power supply**: ESP32 DevKit module using the internal DAC to generate an analog waveform, and also acts as power supply for the load.
+- **Main Acquisition Node - Load**: Heltec WiFi LoRa V3 board reads the analog signal from the ESP32 through ADC and runs the source code.
+- **Energy Consumption Monitoring**: Arduino Mega 2560 connected to an INA219 sensor measures the current and voltage drawn by the Heltec board.
+
+### Connection Details
+
+- **ESP32 DAC Output (GPIO25)** → **Heltec ADC Input (GPIO7)**
+- **INA219 Module**:
+  - V+ connected to power supply (VCC)
+  - V- connected to Heltec VCC pin (powering the Heltec board)
+  - SDA/SCL connected to Arduino Mega 2560 for I2C communication
+
+The INA219 measures real-time power consumption, allowing detailed analysis of the energy profile during different operations (sampling, FFT computation, MQTT transmission, deep sleep).
+
+![boards setup for power consumption measurement](imgs/setupPowerConsumptionMeasurement.png)
+
 **Results**: 
 Adaptive Sampling is expected to significantly reduce energy usage. Since data is sampled and transmitted only when necessary, the microcontroller and communication modules can stay in low-power modes longer. This is especially beneficial in low-activity scenarios.
 Fixed Oversampling results in higher and constant energy consumption, as the system continuously samples and transmits data, regardless of its relevance.
 
-![boards setup for power consumption measurement](imgs/setupPowerConsumptionMeasurement.png)
 
 ### Data Transmission Volume
 Evaluates reduction in data size using adaptive sampling  
