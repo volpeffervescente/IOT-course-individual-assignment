@@ -178,12 +178,11 @@ To accurately assess the end-to-end latency of the system over Wi-Fi, a timestam
    mosquitto_pub -h io.adafruit.com -p 1883 -u "volpeffervescente" -P "AIO_KEY" -t "volpeffervescente/feeds/echoAck" -m "ack"
   done
    ```
-
-  Example command for the external client:  
-    ```bash
-    mosquitto_sub -h io.adafruit.com -p 1883 -u "volpeffervescente" -P "AIO_KEY" -t "volpeffervescente/feeds/echoAck"
-    done
-    ```
+  Example command for the external client:
+   ```bash
+   mosquitto_sub -h io.adafruit.com -p 1883 -u "volpeffervescente" -P "AIO_KEY" -t "volpeffervescente/feeds/echoAck"
+  done
+   ```
 
 **Results**: 
 
