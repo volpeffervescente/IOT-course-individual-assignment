@@ -164,46 +164,7 @@ This project combines **adaptive sampling** (using FFT), **sliding window averag
 
 ## Flowchart
 
-```plaintext
-+----------------+
-| Wake Up        |
-+----------------+
-        |
-        v
-+----------------+
-| Connect WiFi   |
-| and MQTT       |
-+----------------+
-        |
-        v
-+---------------------------+
-| Sample Signal             |
-| (adaptive frequency)      |
-+---------------------------+
-        |
-        v
-+----------------------------+
-| FFT Analysis (if needed)   |
-+----------------------------+
-        |
-        v
-+----------------------------+
-| Calculate Sliding Avg      |
-+----------------------------+
-        |
-        v
-+----------------------------+
-| Publish to MQTT            |
-+----------------------------+
-        |
-        v
-+----------------------------+
-| Deep Sleep (5 seconds)     |
-+----------------------------+
-        |
-        v
-(restart setup)
-```
+![Power Consumption load code Flowchart](imgs/FlowChartPowerConsumption.png)
 
 ## Highlights
 
