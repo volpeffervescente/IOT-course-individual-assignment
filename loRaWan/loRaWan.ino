@@ -3,7 +3,6 @@
 #include <Adafruit_SPITFT.h>
 #include <Adafruit_SPITFT_Macros.h>
 #include <gfxfont.h>
-#include "heltec.h"
 #include <Arduino.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
@@ -11,10 +10,11 @@
 #include "freertos/queue.h"
 #include "LoRaWan_APP.h"
 
-
 #define SENSOR_PIN        7           // ADC pin
 #define SAMPLE_INTERVAL   100         // Sampling every 100ms
 #define WINDOW_SIZE       50          // 5s window (50 samples if 100ms per sample -> 50 * 100ms = 5s)
+
+
 
 /* FreeRTOS Queue and Task handles */
 QueueHandle_t xQueue;
