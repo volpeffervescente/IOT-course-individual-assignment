@@ -142,6 +142,8 @@ Compares adaptive sampling vs. fixed over-sampling
 Adaptive Sampling is expected to significantly reduce energy usage. Since data is sampled and transmitted only when necessary, the microcontroller and communication modules can stay in low-power modes longer. This is especially beneficial in low-activity scenarios.
 Fixed Oversampling results in higher and constant energy consumption, as the system continuously samples and transmits data, regardless of its relevance.
 
+![boards setup for power consumption measurement](setupPowerConsumptionMeasurement.jpg)
+
 ### Data Transmission Volume
 Evaluates reduction in data size using adaptive sampling  
 **Results**: 
@@ -154,7 +156,7 @@ It has to be considered that: since the goal of this project is to send a single
 ### End-to-End Latency
 Measures latency from data generation to reception at edge server. 
 
-### **End-to-End Latency Measurement**
+#### **End-to-End Latency Measurement**
 
 To accurately assess the end-to-end latency of the system over Wi-Fi, a timestamping mechanism is used directly on the ESP32. The idea is to account not only for network delays but also for any small processing overhead on the receiving side. Note that latency depends on network conditions and other internal pc factors.  
 

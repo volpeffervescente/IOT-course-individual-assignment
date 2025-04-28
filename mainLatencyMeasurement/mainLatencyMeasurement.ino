@@ -34,7 +34,7 @@
 #define PUBLISH_INTERVAL_MS 5000
 
 #define IO_USERNAME  "volpeffervescente"
-#define IO_KEY       "aio_aygx857KxXUE3j4QxW3FObQ3mAtg"
+#define IO_KEY       "..."
 
 QueueHandle_t xQueue; 
 
