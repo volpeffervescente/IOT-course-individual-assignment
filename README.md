@@ -1,11 +1,13 @@
 # IoT System with Adaptive Sampling using ESP32 and FreeRTOS
 
 ## Table of Contents
+
 - [Overview](#overview)
   - [Features](#features)
 - [System Architecture](#system-architecture)
   - [Hardware Components](#hardware-components)
   - [Software Components](#software-components)
+- [Code Organization Note](#code-organization-note)
 - [Setup Instructions](#setup-instructions)
 - [Implementation Details](#implementation-details)
   - [Input Signal](#input-signal)
@@ -17,7 +19,15 @@
   - [Energy Savings](#energy-savings)
   - [Data Transmission Volume](#data-transmission-volume)
   - [End-to-End Latency](#end-to-end-latency)
+- [Power Consumption Analysis](#power-consumption-analysis)
+  - [Graph Interpretation](#graph-interpretation)
+  - [Numerical Summary](#numerical-summary)
+  - [Insights](#insights)
+- [Execution Trace via Serial Monitor](#execution-trace-via-serial-monitor)
+  - [Log Interpretation](#log-interpretation)
+  - [Correlation with Graphs](#correlation-with-graphs)
 - [Bonus: Multiple Input Signals](#bonus-multiple-input-signals)
+
 
 ---
 
@@ -56,6 +66,20 @@ This repository contains the source code and documentation for an **IoT system**
   - MQTT over WiFi ([configured Adafruit MQTT broker](https://io.adafruit.com/))
   - LoRaWAN via [TTN (The Things Network)](https://www.thethingsnetwork.org/). An application has been registered on TTN
   - AWS account
+
+---
+
+## Code Organization Note
+
+The primary code used for the final project execution is contained in the `mainLatencyMeasurement` folder.
+
+Other sketches included in the repository serve different purposes:
+- `sigGen`: Used to generate the input signal for testing purposes.
+- `maxSampFrequency`: Used to experimentally determine the maximum achievable sampling frequency of the Heltec WiFi LoRa 32 V3 board.
+
+The remaining sketches are intermediate prototypes, designed to test and validate specific functionalities separately.  
+They contain detailed comments, reasoning, and explanations for educational and developmental purposes.  
+However, when these components are integrated into the main project (`mainLatencyMeasurement`), the explanatory comments are streamlined or omitted to maintain code clarity and compactness.
 
 ---
 
@@ -371,8 +395,5 @@ Note: one-way latency is estimated by dividing the RTT by two.
 ## Bonus: Multiple Input Signals
 For the bonus assignment, the generation of at least 3 different input signals (some with low frequency and low amplitude, others with high frequency and high amplitude, ecc...) is performed by the DAC of the ESP32 board. This assignment is merged with the signal generation assignment, in the 'sigGen' source code.   
 
-
-How different types of an input signal may affect the overall performance in the case of adaptive sampling vs basic/over-sampling: 
-_
 
 ---

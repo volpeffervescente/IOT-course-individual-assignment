@@ -29,7 +29,7 @@
 #define ERROR_MARGIN      3
 
 #define IO_USERNAME  "volpeffervescente"
-#define IO_KEY       "aio_nsfH8442A02P4LOgpjeouOMDUxKZ"
+#define IO_KEY       "..."
 const char* ssid = "FASTWEB-25S396_2.4GHz";
 const char* password = "Morgana10122015";
 const char* mqttServer = "io.adafruit.com";
