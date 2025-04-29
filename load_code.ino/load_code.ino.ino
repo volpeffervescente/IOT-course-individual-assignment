@@ -23,13 +23,13 @@
 #define SAMPLES           64
 #define INITIAL_SAMPLING_FREQ 16000.0
 #define WINDOW_SIZE       50
-#define TIME_TO_SLEEP_S   5
+#define TIME_TO_SLEEP_S   10
 #define S_TO_uS_FACTOR    1000000ULL
 #define MIN_FFT_INTERVAL_MS 5000
 #define ERROR_MARGIN      3
 
 #define IO_USERNAME  "volpeffervescente"
-#define IO_KEY       "..."
+#define IO_KEY       "aio_nsfH8442A02P4LOgpjeouOMDUxKZ"
 const char* ssid = "FASTWEB-25S396_2.4GHz";
 const char* password = "Morgana10122015";
 const char* mqttServer = "io.adafruit.com";
@@ -64,9 +64,6 @@ unsigned long sentTimestamp = 0;
 float mean = 0.0f;
 float stdDeviation = 0.0f;
 
-//------------------------------------
-// WIFI & MQTT
-//------------------------------------
 void wifiConnect() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -102,20 +99,22 @@ void callback(char* topic, byte* message, unsigned int length) {
   }
 }
 
-//------------------------------------
-// MAIN WORKFLOW
-//------------------------------------
 void setup() {
   Serial.begin(115200);
   analogReadResolution(10);
   analogSetAttenuation(ADC_11db);
 
+  bool firstRun = true;
+   
+  Serial.println("Connecting to WiFi...");
   wifiConnect();
+  Serial.println("Connected to WiFi.");
   client.setServer(mqttServer, port);
   client.setCallback(callback);
   mqttReconnect();
 
   // Sampling phase
+  Serial.println("sampling phase...");
   double* local_vReal = useBufferA ? bufferA_vReal : bufferB_vReal;
   double* local_vImag = useBufferA ? bufferA_vImag : bufferB_vImag;
 
@@ -136,8 +135,9 @@ void setup() {
   }
   newStdDev = sqrt(newStdDev / SAMPLES);
 
-  if ((millis() - lastFFTTime > MIN_FFT_INTERVAL_MS) &&
-      (newMean >= mean + stdDeviation * ERROR_MARGIN || newMean <= mean - stdDeviation * ERROR_MARGIN)) {
+  if (firstRun || ((millis() - lastFFTTime > MIN_FFT_INTERVAL_MS) &&
+      (newMean >= mean + stdDeviation * ERROR_MARGIN || newMean <= mean - stdDeviation * ERROR_MARGIN))) {
+    Serial.println("Starting FFT calculation...");
     vReal = local_vReal;
     vImag = local_vImag;
     useBufferA = !useBufferA;
@@ -154,6 +154,8 @@ void setup() {
       Serial.println(samplingFrequency);
     }
     lastFFTTime = millis();
+    firstRun = false;
+    Serial.println("Finished FFT calculation.");
   }
   mean = newMean;
   stdDeviation = newStdDev;
@@ -181,11 +183,14 @@ void setup() {
   snprintf(msg, MSG_BUFFER_SIZE, "%0.2f, time: %lu", avg, sentTimestamp);
   Serial.print("Publish message: ");
   Serial.println(msg);
+  Serial.println("Sending data...");
   client.publish(feed, msg);
+  Serial.println("Data sent.");
   client.loop();
-
+  
   // Sleep
   Serial.println("Going to sleep now...");
+  delay(500); 
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP_S * S_TO_uS_FACTOR);
   esp_deep_sleep_start();
 }

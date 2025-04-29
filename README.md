@@ -198,6 +198,125 @@ The INA219 measures real-time power consumption, allowing detailed analysis of t
 Adaptive Sampling is expected to significantly reduce energy usage. Since data is sampled and transmitted only when necessary, the microcontroller and communication modules can stay in low-power modes longer. This is especially beneficial in low-activity scenarios.
 Fixed Oversampling results in higher and constant energy consumption, as the system continuously samples and transmits data, regardless of its relevance.
 
+The figure below illustrates the power and current profile of the system during a single full execution cycle. 
+
+![Power and Current Graph](./imgs/powerCurrentGraph.png)
+
+### Graph Interpretation
+
+- **Gray line — Power (mW)**: instantaneous power consumed by the device.
+- **Green line — Current (mA)**: current measured by the INA219 sensor.
+
+Each waveform clearly shows the structure of one complete cycle:
+
+1. **Initial Idle Phase**  
+   - Both power and current are low or near zero.
+   - The ESP32 is either just waking up or finishing a previous cycle.
+
+2. **Active Operation Phase**  
+   - Power and current rise significantly.
+   - This corresponds to multiple intensive tasks performed by the ESP32, including:
+     - Establishing WiFi and MQTT connections
+     - Sampling analog data from the sensor
+     - Performing FFT (Fast Fourier Transform) computation
+     - Publishing the result to Adafruit IO via MQTT
+
+   Example FFT output from serial:
+   ```
+   [FFT] Peak: 628.95 Hz, New Sampling Freq: 1257.91
+   [FFT] Peak: 634.57 Hz, New Sampling Freq: 1269.14
+   ```
+
+3. **Return to Sleep**  
+   - Sharp drop in both power and current.
+   - This indicates that the ESP32 has completed its tasks and is now entering deep sleep to conserve energy.
+
+### Numerical Summary (Single Cycle)
+
+| Phase              | Average Power (mW) | Peak Power (mW) | Average Current (mA) | Peak Current (mA) | Duration Estimate |
+|--------------------|--------------------|-----------------|----------------------|-------------------|-------------------|
+| Idle               | ~10                | ~20             | ~0                   | ~0                | ~15 s             |
+| Active Operation   | ~500               | ~620            | ~-20                 | ~-25              | ~80–100 s         |
+
+> Note: Current values are negative due to the direction of current flow relative to INA219 sensor wiring.
+
+**Estimated Energy Consumption (Active Phase):**
+
+Assuming an average power of 600 mW over 90 seconds:
+
+\[
+E = P \cdot t = 0.6\, \text{W} \cdot 90\, \text{s} = 54\, \text{J}
+\]
+
+---
+
+### Insights
+
+This single-cycle trace confirms the expected behavior of the system:
+- Energy consumption increases during sensing, processing, and communication.
+- FFT is now executed correctly during each cycle, and its results (frequency peak and adjusted sampling rate) are logged.
+- Deep sleep is correctly entered after each cycle, reducing overall power usage.
+- The INA219 sensor effectively tracks real-time current and power, allowing validation of the system’s energy profile.
+
+---
+
+## Execution Trace via Serial Monitor
+
+To correlate energy usage with system behavior, the ESP32 prints key messages to the serial monitor during each cycle.
+
+![Serial Output Screenshot](imgs/LoadCodeSerialOutput.png)
+
+### Log Interpretation
+
+The log reflects all critical stages of the device’s activity:
+
+- **Network Setup**
+  ```text
+  Connecting to WiFi...
+  WiFi connected
+  Attempting MQTT connection... connected
+  ```
+
+- **Sensor Sampling and Processing**
+  ```text
+  sampling phase...
+  Starting FFT calculation...
+  [FFT] Peak: 628.95 Hz, New Sampling Freq: 1257.91
+  Finished FFT calculation.
+  Average value of sensor readings: 22.780000
+  ```
+
+- **Data Transmission**
+  ```text
+  Publish message: 22.78, time: 7874
+  Sending data...
+  Data sent.
+  ```
+
+- **Deep Sleep Transition**
+  ```text
+  Going to sleep now...
+  ```
+
+After this point, the device enters deep sleep. Upon waking, the ESP32 restarts execution from the top of the `setup()` function. This is indicated by the following boot messages:
+
+```text
+rst:0x5 (DEEPSLEEP_RESET), boot:0x8 (SPI_FAST_FLASH_BOOT)
+```
+
+These low-level lines are part of the ESP32’s ROM bootloader and confirm a proper wake-up from deep sleep
+
+### Correlation with Graphs
+
+By comparing the timing of these logs with the power/current graph:
+- It becomes clear **what operations contribute to each power spike**.
+- The **transition to low power state** matches the expected deep sleep entry point.
+- The inclusion of FFT results in the serial log confirms when frequency analysis occurs within the cycle.
+
+This logging strategy provides a robust tool for debugging and validating the behavior of energy-constrained embedded systems.
+
+
+
 
 ### Data Transmission Volume
 Evaluates reduction in data size using adaptive sampling  
