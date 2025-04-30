@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#define NUM_SIGNALS 5
+#define NUM_SIGNALS 4
 #define SAMPLING_FREQ 8000
 #define NUM_SAMPLES 2048
 #define OFFSET 128
