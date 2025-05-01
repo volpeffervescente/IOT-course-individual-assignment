@@ -73,6 +73,14 @@ This repository contains the source code and documentation for an **IoT system**
 
 The primary code used for the final project execution is contained in the `mainLatencyMeasurement` folder.
 
+The `load_code.ino` sketch is a simplified version of the main program `mainLatencyMeasurement.ino`, designed specifically for power consumption measurement and testing.  
+All operations—initialization, sampling, FFT computation, MQTT publishing, and transition to deep sleep—are executed entirely within the `setup()` function.
+
+This structure fits the intended purpose: to perform a single cycle of activity followed by deep sleep, which is ideal for profiling power usage under realistic operating conditions.
+
+While `load_code.ino` is useful for testing and energy profiling, the **actual project implementation** is in `mainLatencyMeasurement.ino`, which integrates the full logic with more flexibility and modularity.
+
+
 Other sketches included in the repository serve different purposes:
 - `sigGen`: Used to generate the input signal for testing purposes.
 - `maxSampFrequency`: Used to experimentally determine the maximum achievable sampling frequency of the Heltec WiFi LoRa 32 V3 board.
